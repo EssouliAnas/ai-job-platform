@@ -4,11 +4,6 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { parseResumeFile } from '@/lib/pdf/parser';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
     // Check if OpenAI API key is configured
@@ -143,6 +138,10 @@ export async function POST(request: NextRequest) {
         // Still proceed with AI analysis using filename and file type info
         resumeContent = `Resume file: ${file.name} (${fileType} format, ${(file.size / 1024).toFixed(2)} KB)`;
       }
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
 
       // Use OpenAI to analyze the resume
       const completion = await openai.chat.completions.create({

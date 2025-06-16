@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(request: NextRequest) {
   try {
     const { resumeData } = await request.json()
@@ -12,6 +8,10 @@ export async function POST(request: NextRequest) {
     if (!resumeData) {
       return NextResponse.json({ error: 'Resume data is required' }, { status: 400 })
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
 
     const prompt = `Based on the following resume data, generate a professional, well-structured resume content. Make it compelling, well-formatted, and highlight achievements quantitatively where possible.
 

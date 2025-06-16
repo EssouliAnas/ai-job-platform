@@ -3,10 +3,6 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
@@ -101,6 +97,9 @@ async function analyzeMatch(
   coverLetterText: string = ''
 ): Promise<number> {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     const prompt = `
       You are an expert recruiter. Analyze how well the candidate's resume and cover letter match the job requirements.
       

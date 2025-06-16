@@ -3,10 +3,6 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 function calculateBasicMatchScore(resumeData: any, job: any): number {
   const userSkills = resumeData.skills.map((skill: any) => skill.name.toLowerCase());
   const jobRequirements = job.requirements.map((req: string) => req.toLowerCase());
@@ -157,6 +153,10 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ jobs: matchedJobs });
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     // Create AI prompt for enhanced job matching
     const prompt = `
