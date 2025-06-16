@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import supabase from '@/lib/supabase/client';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
+    // Create server-side Supabase client
+    const supabase = createRouteHandlerClient({ cookies });
+    
     // Test Supabase connection and storage permissions
     const { data: buckets, error: bucketsError } = await supabase
       .storage
