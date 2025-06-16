@@ -20,6 +20,37 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Features
+
+### AI Resume Analysis
+
+The platform offers AI-powered resume analysis:
+
+1. Upload your existing resume (PDF, DOC, or DOCX format)
+2. Our AI will analyze your resume and provide detailed feedback on:
+   - Overall score and quality assessment
+   - Section-by-section breakdown (Contact, Summary, Experience, Education, Skills)
+   - Missing important elements
+   - Specific improvement suggestions
+   - Grammar and tone assessment
+
+To use this feature:
+- Navigate to the Resume Review page
+- Upload your resume file or drag and drop it
+- Wait for the AI analysis to complete
+- Review the detailed feedback
+- Use our Resume Builder to create an improved version based on the feedback
+
+### Setup Requirements
+
+To enable the AI resume analysis feature:
+1. Set up a Supabase project and add the following environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (for admin operations)
+2. Obtain an OpenAI API key and add it as `OPENAI_API_KEY`
+3. Visit `/api/create-storage-bucket` once to create the required storage bucket
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

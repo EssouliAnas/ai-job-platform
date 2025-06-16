@@ -1,163 +1,652 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import supabase from '@/lib/supabase/client'
+
+interface CoverLetterData {
+  personalInfo: {
+    fullName: string
+    email: string
+    phone: string
+    address: string
+  }
+  jobInfo: {
+    position: string
+    company: string
+    hiringManager: string
+    jobSource: string
+  }
+  content: {
+    introduction: string
+    bodyParagraph1: string
+    bodyParagraph2: string
+    closing: string
+  }
+}
 
 export default function CoverLetterPage() {
-  const [jobDescription, setJobDescription] = useState('');
-  const [coverLetter, setCoverLetter] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!jobDescription.trim()) {
-      alert('Please enter a job description');
-      return;
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [activeSection, setActiveSection] = useState('personal')
+  const [generating, setGenerating] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [enhancingParagraph, setEnhancingParagraph] = useState<string | null>(null)
+  const [coverLetterData, setCoverLetterData] = useState<CoverLetterData>({
+    personalInfo: {
+      fullName: '',
+      email: '',
+      phone: '',
+      address: ''
+    },
+    jobInfo: {
+      position: '',
+      company: '',
+      hiringManager: '',
+      jobSource: ''
+    },
+    content: {
+      introduction: '',
+      bodyParagraph1: '',
+      bodyParagraph2: '',
+      closing: ''
     }
+  })
+  const router = useRouter()
+
+  useEffect(() => {
+    checkUser()
+  }, [])
+
+  const checkUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/auth/sign-in')
+        return
+      }
+      setUser(session.user)
+      // Pre-fill email if available
+      setCoverLetterData(prev => ({
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          email: session.user.email || ''
+        }
+      }))
+    } catch (err: any) {
+      console.error('Error checking user:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateWithAI = async () => {
+    setGenerating(true)
     
-    setLoading(true);
+    try {
+      const response = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalInfo: coverLetterData.personalInfo,
+          jobInfo: coverLetterData.jobInfo,
+          userBackground: 'Based on my experience and skills, I am seeking a position that allows me to contribute to innovative projects and grow professionally.'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate cover letter with AI')
+      }
+
+      const result = await response.json()
+      
+      if (result.success && result.coverLetter) {
+        setCoverLetterData(prev => ({
+          ...prev,
+          content: result.coverLetter
+        }))
+      }
+    } catch (error) {
+      console.error('Error generating cover letter:', error)
+      alert('Failed to generate cover letter with AI. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const exportToDOCX = async () => {
+    setExporting(true)
+    try {
+      const response = await fetch('/api/export-docx', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: coverLetterData,
+          type: 'cover-letter',
+          personalInfo: coverLetterData.personalInfo
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to export cover letter')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${coverLetterData.personalInfo.fullName || 'cover-letter'}_${coverLetterData.jobInfo.company || 'application'}.docx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error exporting cover letter:', error)
+      alert('Failed to export cover letter. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handlePersonalInfoChange = (field: keyof CoverLetterData['personalInfo'], value: string) => {
+    setCoverLetterData(prev => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        [field]: value
+      }
+    }))
+  }
+
+  const handleJobInfoChange = (field: keyof CoverLetterData['jobInfo'], value: string) => {
+    setCoverLetterData(prev => ({
+      ...prev,
+      jobInfo: {
+        ...prev.jobInfo,
+        [field]: value
+      }
+    }))
+  }
+
+  const handleContentChange = (field: keyof CoverLetterData['content'], value: string) => {
+    setCoverLetterData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [field]: value
+      }
+    }))
+  }
+
+  const enhanceParagraph = async (paragraphType: keyof CoverLetterData['content']) => {
+    const currentText = coverLetterData.content[paragraphType]
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (!currentText.trim()) {
+      alert('Please write some content first before enhancing.')
+      return
+    }
+
+    setEnhancingParagraph(paragraphType)
     
-    // Set sample cover letter
-    setCoverLetter(`
-Dear Hiring Manager,
+    try {
+      const response = await fetch('/api/enhance-paragraph', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: currentText,
+          paragraphType: paragraphType,
+          jobInfo: coverLetterData.jobInfo
+        }),
+      })
 
-I am excited to apply for the position at your company as described in the job posting. With my background and experience, I believe I would be an excellent fit for this role.
+      if (!response.ok) {
+        throw new Error('Failed to enhance paragraph')
+      }
 
-The job description mentions that you're looking for someone with expertise in key areas that align perfectly with my professional experience. Throughout my career, I have consistently demonstrated these skills and qualities.
+      const result = await response.json()
+      
+      if (result.success && result.enhancedText) {
+        setCoverLetterData(prev => ({
+          ...prev,
+          content: {
+            ...prev.content,
+            [paragraphType]: result.enhancedText
+          }
+        }))
+      }
+    } catch (error) {
+      console.error('Error enhancing paragraph:', error)
+      alert('Failed to enhance paragraph. Please try again.')
+    } finally {
+      setEnhancingParagraph(null)
+    }
+  }
 
-In my previous role, I successfully led projects that required strong collaboration and technical expertise. I'm particularly proud of my ability to deliver results while maintaining high standards of quality.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading cover letter generator...</p>
+        </div>
+      </div>
+    )
+  }
 
-I am excited about the opportunity to bring my unique blend of skills and experience to your team. The company's mission and values resonate with me, and I would welcome the chance to contribute to your continued success.
-
-Thank you for considering my application. I look forward to the possibility of discussing how my background, skills, and experiences would benefit your organization.
-
-Sincerely,
-[Your Name]
-    `);
-    
-    setLoading(false);
-  };
-  
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="pb-6">
-          <h1 className="text-3xl font-bold text-gray-900">AI Cover Letter Generator</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Generate a tailored cover letter based on your resume and the job description
-          </p>
-        </header>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div>
-                    <label htmlFor="resume" className="block text-sm font-medium text-gray-700 mb-1">
-                      Select your resume
-                    </label>
-                    <select
-                      id="resume"
-                      name="resume"
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="">Select a resume</option>
-                      <option value="resume1">My Software Engineer Resume</option>
-                      <option value="resume2">My Project Manager Resume</option>
-                    </select>
-                    <p className="mt-1 text-xs text-gray-500">
-                      <Link href="/resume-builder" className="text-blue-600 hover:text-blue-500">
-                        Create a new resume
-                      </Link> if you don&apos;t have one yet
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Description
-                    </label>
-                    <textarea
-                      id="jobDescription"
-                      name="jobDescription"
-                      rows={8}
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      placeholder="Paste the job description here..."
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
-                      Tone
-                    </label>
-                    <select
-                      id="tone"
-                      name="tone"
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="professional">Professional</option>
-                      <option value="enthusiastic">Enthusiastic</option>
-                      <option value="formal">Formal</option>
-                      <option value="conversational">Conversational</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      {loading ? 'Generating...' : 'Generate Cover Letter'}
-                    </button>
-                  </div>
-                </div>
-              </form>
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard"
+                className="flex items-center text-gray-600 hover:text-yellow-500 transition-colors"
+              >
+                <span className="text-xl mr-2">←</span>
+                <span className="font-medium">Back to Dashboard</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <h1 className="text-xl font-bold text-gray-900">AI Cover Letter Generator</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={generateWithAI}
+                disabled={generating || !coverLetterData.jobInfo.position || !coverLetterData.jobInfo.company}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {generating ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Generating...
+                  </span>
+                ) : (
+                  '🤖 Generate with AI'
+                )}
+              </button>
+              <button 
+                onClick={exportToDOCX}
+                disabled={exporting}
+                className="bg-gradient-to-r from-yellow-400 to-pink-400 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {exporting ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Exporting...
+                  </span>
+                ) : (
+                  '📄 Download DOCX'
+                )}
+              </button>
             </div>
           </div>
-          
-          <div>
-            <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Your Cover Letter</h2>
-              
-              {coverLetter ? (
-                <div className="border rounded-md p-6 bg-gray-50">
-                  <div className="whitespace-pre-line font-serif text-gray-800">
-                    {coverLetter}
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Form Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Section Navigation */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { id: 'personal', label: 'Personal Info', icon: '👤' },
+                  { id: 'job', label: 'Job Details', icon: '💼' },
+                  { id: 'content', label: 'Content', icon: '✍️' }
+                ].map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                      activeSection === section.id
+                        ? 'bg-gradient-to-r from-yellow-400 to-pink-400 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="mr-2">{section.icon}</span>
+                    {section.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Personal Information */}
+            {activeSection === 'personal' && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={coverLetterData.personalInfo.fullName}
+                      onChange={(e) => handlePersonalInfoChange('fullName', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="John Doe"
+                    />
                   </div>
-                  <div className="mt-6 flex space-x-4">
-                    <button 
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                      onClick={() => alert('Download functionality would be implemented here')}
-                    >
-                      Download as PDF
-                    </button>
-                    <button 
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      onClick={() => alert('Copy functionality would be implemented here')}
-                    >
-                      Copy to Clipboard
-                    </button>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={coverLetterData.personalInfo.email}
+                      onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={coverLetterData.personalInfo.phone}
+                      onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      value={coverLetterData.personalInfo.address}
+                      onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="123 Main St, City, State 12345"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <p>Your cover letter will appear here</p>
+              </div>
+            )}
+
+            {/* Job Information */}
+            {activeSection === 'job' && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Job Details</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Position Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={coverLetterData.jobInfo.position}
+                      onChange={(e) => handleJobInfoChange('position', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="Software Engineer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Company Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={coverLetterData.jobInfo.company}
+                      onChange={(e) => handleJobInfoChange('company', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="TechCorp Inc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Hiring Manager Name
+                    </label>
+                    <input
+                      type="text"
+                      value={coverLetterData.jobInfo.hiringManager}
+                      onChange={(e) => handleJobInfoChange('hiringManager', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                      placeholder="Jane Smith (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      How did you find this job?
+                    </label>
+                    <select
+                      value={coverLetterData.jobInfo.jobSource}
+                      onChange={(e) => handleJobInfoChange('jobSource', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-gray-900"
+                    >
+                      <option value="">Select source (optional)</option>
+                      <option value="LinkedIn">LinkedIn</option>
+                      <option value="Indeed">Indeed</option>
+                      <option value="company website">Company website</option>
+                      <option value="a referral">A referral</option>
+                      <option value="job fair">Job fair</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
-              )}
+
+                <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start">
+                    <span className="text-2xl mr-3">💡</span>
+                    <div>
+                      <h3 className="text-lg font-semibold text-blue-900 mb-2">AI Generation Tips</h3>
+                      <ul className="text-blue-800 space-y-1 text-sm">
+                        <li>• Fill in at least the position and company name for best results</li>
+                        <li>• Include the hiring manager's name if you know it</li>
+                        <li>• Mention how you found the job to show your proactive approach</li>
+                        <li>• The AI will customize content based on the job type you enter</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content Section */}
+            {activeSection === 'content' && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Cover Letter Content</h2>
+                  <span className="text-sm text-gray-500">
+                    {coverLetterData.content.introduction || coverLetterData.content.bodyParagraph1 || coverLetterData.content.bodyParagraph2 || coverLetterData.content.closing ? 'Content added' : 'Use AI to generate or write manually'}
+                  </span>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        Introduction Paragraph
+                      </label>
+                      <button
+                        onClick={() => enhanceParagraph('introduction')}
+                        disabled={!coverLetterData.content.introduction.trim() || enhancingParagraph === 'introduction'}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {enhancingParagraph === 'introduction' ? (
+                          <span className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
+                            Enhancing...
+                          </span>
+                        ) : (
+                          '✨ Enhance with AI'
+                        )}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={coverLetterData.content.introduction}
+                      onChange={(e) => handleContentChange('introduction', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
+                      placeholder="Start with your interest in the position and how you learned about it..."
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        Body Paragraph 1 - Your Experience & Skills
+                      </label>
+                      <button
+                        onClick={() => enhanceParagraph('bodyParagraph1')}
+                        disabled={!coverLetterData.content.bodyParagraph1.trim() || enhancingParagraph === 'bodyParagraph1'}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {enhancingParagraph === 'bodyParagraph1' ? (
+                          <span className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
+                            Enhancing...
+                          </span>
+                        ) : (
+                          '✨ Enhance with AI'
+                        )}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={coverLetterData.content.bodyParagraph1}
+                      onChange={(e) => handleContentChange('bodyParagraph1', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
+                      placeholder="Highlight your relevant experience, skills, and achievements..."
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        Body Paragraph 2 - Why This Company
+                      </label>
+                      <button
+                        onClick={() => enhanceParagraph('bodyParagraph2')}
+                        disabled={!coverLetterData.content.bodyParagraph2.trim() || enhancingParagraph === 'bodyParagraph2'}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {enhancingParagraph === 'bodyParagraph2' ? (
+                          <span className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
+                            Enhancing...
+                          </span>
+                        ) : (
+                          '✨ Enhance with AI'
+                        )}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={coverLetterData.content.bodyParagraph2}
+                      onChange={(e) => handleContentChange('bodyParagraph2', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
+                      placeholder="Explain why you want to work for this specific company and how you can contribute..."
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        Closing Paragraph
+                      </label>
+                      <button
+                        onClick={() => enhanceParagraph('closing')}
+                        disabled={!coverLetterData.content.closing.trim() || enhancingParagraph === 'closing'}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {enhancingParagraph === 'closing' ? (
+                          <span className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></div>
+                            Enhancing...
+                          </span>
+                        ) : (
+                          '✨ Enhance with AI'
+                        )}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={coverLetterData.content.closing}
+                      onChange={(e) => handleContentChange('closing', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
+                      placeholder="Thank them and express your enthusiasm for next steps..."
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Preview Section */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Live Preview</h3>
+                
+                {/* Cover Letter Preview */}
+                <div className="bg-white rounded-lg p-6 min-h-[600px] text-sm font-serif leading-relaxed text-black border border-gray-200">
+                  {/* Header */}
+                  <div className="mb-8">
+                    <div className="text-right mb-6">
+                      <div className="font-semibold text-black">{coverLetterData.personalInfo.fullName || 'Your Name'}</div>
+                      {coverLetterData.personalInfo.email && <div className="text-black">{coverLetterData.personalInfo.email}</div>}
+                      {coverLetterData.personalInfo.phone && <div className="text-black">{coverLetterData.personalInfo.phone}</div>}
+                      {coverLetterData.personalInfo.address && <div className="text-black">{coverLetterData.personalInfo.address}</div>}
+                    </div>
+                    
+                    <div className="text-right text-black text-xs mb-6">
+                      {new Date().toLocaleDateString()}
+                    </div>
+
+                    {coverLetterData.jobInfo.company && (
+                      <div className="mb-6">
+                        <div className="font-semibold text-black">{coverLetterData.jobInfo.hiringManager || 'Hiring Manager'}</div>
+                        <div className="text-black">{coverLetterData.jobInfo.company}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="space-y-4 text-black">
+                    {coverLetterData.content.introduction && (
+                      <p className="text-black">{coverLetterData.content.introduction}</p>
+                    )}
+                    
+                    {coverLetterData.content.bodyParagraph1 && (
+                      <p className="text-black">{coverLetterData.content.bodyParagraph1}</p>
+                    )}
+                    
+                    {coverLetterData.content.bodyParagraph2 && (
+                      <p className="text-black">{coverLetterData.content.bodyParagraph2}</p>
+                    )}
+                    
+                    {coverLetterData.content.closing && (
+                      <p className="whitespace-pre-line text-black">{coverLetterData.content.closing}</p>
+                    )}
+                  </div>
+
+                  {!coverLetterData.content.introduction && !coverLetterData.content.bodyParagraph1 && (
+                    <div className="text-center text-gray-400 py-12">
+                      <span className="text-4xl block mb-4">✍️</span>
+                      <p>Your cover letter content will appear here</p>
+                      <p className="text-xs mt-2">Fill in job details and use AI generation or write manually</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 } 

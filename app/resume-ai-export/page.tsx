@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { generatePDF, generateDOCX } from '@/lib/pdf';
 
 interface ResumeTemplate {
   id: string;
@@ -64,11 +65,81 @@ export default function ResumeAIExportPage() {
     // Simulate API call to OpenAI for content enhancement and document generation
     await new Promise(resolve => setTimeout(resolve, 4000));
     
-    // In a real application, this would be a URL to the generated PDF/DOCX file
+    // In a real application, this would fetch the enhanced resume data
     // For this demo, we'll just simulate success
-    setGeneratedResumeUrl('https://example.com/generated-resume.pdf');
+    setGeneratedResumeUrl('success');
     
     setIsGenerating(false);
+  };
+  
+  // Handle resume download
+  const handleDownload = async (format: 'pdf' | 'docx') => {
+    // In a real app, this would use the actual resume data
+    // For demo purposes, we'll create sample data
+    const mockResumeData = {
+      summary: 'Experienced software developer with a passion for creating user-friendly applications and solving complex problems.',
+      contact: {
+        name: 'John Developer',
+        title: 'Senior Software Engineer',
+      },
+      education: [
+        {
+          institution: 'University of Technology',
+          degree: 'Bachelor of Science in Computer Science',
+          date: '2015-2019',
+        }
+      ],
+      experience: [
+        {
+          company: 'Tech Solutions Inc.',
+          position: 'Senior Developer',
+          date: '2020-Present',
+          responsibilities: [
+            'Led development of cloud-based applications using React and Node.js',
+            'Implemented CI/CD pipelines to improve deployment efficiency',
+            'Mentored junior developers and conducted code reviews'
+          ],
+          achievements: [
+            'Reduced application load time by 40% through code optimization',
+            'Implemented automated testing that improved code quality by 25%',
+            'Delivered all projects on time and within budget'
+          ]
+        },
+        {
+          company: 'Digital Innovations LLC',
+          position: 'Software Developer',
+          date: '2019-2020',
+          responsibilities: [
+            'Developed frontend components using React and TypeScript',
+            'Created RESTful APIs using Express and MongoDB',
+            'Collaborated with UX designers to implement responsive interfaces'
+          ],
+          achievements: [
+            'Recognized for delivering high-quality code with minimal bugs',
+            'Improved application performance by optimizing database queries',
+            'Contributed to open-source libraries used by the company'
+          ]
+        }
+      ],
+      skills: {
+        technical: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Express', 'MongoDB', 'AWS', 'Docker', 'Git'],
+        soft: ['Communication', 'Team Leadership', 'Problem Solving', 'Time Management']
+      },
+      certifications: ['AWS Certified Developer', 'MongoDB Certified Developer'],
+      languages: ['English (Native)', 'Spanish (Intermediate)'],
+      hobbies: ['Open Source Contributing', 'Hiking', 'Photography']
+    };
+    
+    try {
+      if (format === 'pdf') {
+        generatePDF(mockResumeData);
+      } else if (format === 'docx') {
+        generateDOCX(mockResumeData);
+      }
+    } catch (error) {
+      console.error('Error generating document:', error);
+      alert(`There was an error generating your ${format.toUpperCase()} file. Please try again.`);
+    }
   };
   
   return (
@@ -214,12 +285,20 @@ export default function ResumeAIExportPage() {
             <p className="mt-2 text-gray-500">We've enhanced your resume with AI and formatted it professionally</p>
             
             <div className="mt-8 space-y-4">
-              <button
-                onClick={() => window.open(generatedResumeUrl || '#', '_blank')}
-                className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Download Resume
-              </button>
+              <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <button
+                  onClick={() => handleDownload('pdf')}
+                  className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Download as PDF
+                </button>
+                <button
+                  onClick={() => handleDownload('docx')}
+                  className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                >
+                  Download as DOCX
+                </button>
+              </div>
               
               <div className="flex justify-center space-x-4">
                 <button

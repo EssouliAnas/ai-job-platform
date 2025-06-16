@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paper Works - Crea Resumes Profesionales</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #fffbe6, #fcecff);
+      color: #222;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: 800;
+      font-size: 24px;
+    }
+    .logo span {
+      color: #fbbf24;
+      margin-left: 4px;
+    }
+    nav a {
+      margin: 0 15px;
+      text-decoration: none;
+      color: #222;
+      font-weight: 500;
+    }
+    .login-btn {
+      background: #000;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 60px 40px;
+    }
+    .hero-text {
+      max-width: 50%;
+    }
+    .hero-text h1 {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .hero-text h1 span {
+      color: #ec4899;
+    }
+    .hero-text p {
+      margin-top: 20px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #555;
+    }
+    .buttons {
+      margin-top: 30px;
+    }
+    .buttons button {
+      font-size: 16px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      margin-right: 16px;
+      cursor: pointer;
+      border: none;
+    }
+    .create-btn {
+      background: #fbbf24;
+      color: #000;
+    }
+    .upload-btn {
+      background: #000;
+      color: #fff;
+    }
+    .resume-card {
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      width: 350px;
+    }
+    .resume-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .resume-card p {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #555;
+    }
+    .resume-section {
+      margin-top: 20px;
+    }
+    .resume-section h3 {
+      color: #fbbf24;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .tag {
+      background: #f3f4f6;
+      color: #333;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+    .tag.figma { background-color: #f9a8d4; }
+    .tag.adobe { background-color: #fde68a; }
+    .tag.sketch { background-color: #f9a8d4; }
+    .tag.uiux { background-color: #fde68a; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Paper <span>Works</span></div>
+    <nav>
+      <a href="#">Inicio</a>
+      <a href="#">Características</a>
+      <a href="#">Precios</a>
+      <a href="#">Contacto</a>
+    </nav>
+    <button class="login-btn">Iniciar Sesión</button>
+  </header>
+
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Crea resumes profesionales que <span>destaquen</span></h1>
+      <p>Paper Works te ayuda a crear, editar y gestionar tus currículums de manera profesional y efectiva para conseguir el trabajo de tus sueños.</p>
+      <div class="buttons">
+        <button class="create-btn">+ Create a Resume</button>
+        <button class="upload-btn">↑ Upload Resume</button>
+      </div>
+    </div>
+    <div class="resume-card">
+      <h2>John Doe</h2>
+      <p>UX/UI Designer</p>
+
+      <div class="resume-section">
+        <h3>Experiencia</h3>
+        <p><strong>Senior Designer - Tech Co.</strong><br>2020 - Presente</p>
+      </div>
+
+      <div class="resume-section">
+        <h3>Educación</h3>
+        <p><strong>Universidad de Diseño</strong><br>Licenciatura en Diseño Digital</p>
+      </div>
+
+      <div class="resume-section">
+        <h3>Habilidades</h3>
+        <div class="tags">
+          <span class="tag figma">Figma</span>
+          <span class="tag adobe">Adobe XD</span>
+          <span class="tag sketch">Sketch</span>
+          <span class="tag uiux">UI/UX</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

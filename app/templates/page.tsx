@@ -1,225 +1,269 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import supabase from '@/lib/supabase/client';
 
-interface Template {
-  id: string;
-  name: string;
-  category: 'professional' | 'creative' | 'simple' | 'academic';
-  imageUrl: string;
-  description: string;
-  isPremium: boolean;
-}
+const templates = [
+  {
+    id: 1,
+    name: 'Professional Classic',
+    category: 'Classic',
+    description: 'Clean and professional design perfect for corporate environments',
+    preview: '📄',
+    color: 'blue',
+    features: ['ATS-friendly', 'Clean layout', 'Traditional format']
+  },
+  {
+    id: 2,
+    name: 'Modern Creative',
+    category: 'Creative',
+    description: 'Contemporary design with creative elements for design roles',
+    preview: '🎨',
+    color: 'purple',
+    features: ['Visual appeal', 'Modern typography', 'Color accents']
+  },
+  {
+    id: 3,
+    name: 'Tech Minimalist',
+    category: 'Tech',
+    description: 'Minimalist design optimized for tech industry professionals',
+    preview: '⚡',
+    color: 'green',
+    features: ['Tech-focused', 'Minimal design', 'Skills emphasis']
+  },
+  {
+    id: 4,
+    name: 'Executive Elite',
+    category: 'Executive',
+    description: 'Sophisticated design for senior-level positions',
+    preview: '👔',
+    color: 'gray',
+    features: ['Executive style', 'Premium look', 'Leadership focus']
+  },
+  {
+    id: 5,
+    name: 'Creative Portfolio',
+    category: 'Creative',
+    description: 'Portfolio-style resume for creative professionals',
+    preview: '🎭',
+    color: 'pink',
+    features: ['Portfolio style', 'Visual elements', 'Creative layout']
+  },
+  {
+    id: 6,
+    name: 'Academic Scholar',
+    category: 'Academic',
+    description: 'Traditional academic CV format for researchers and educators',
+    preview: '🎓',
+    color: 'indigo',
+    features: ['Academic format', 'Publication focus', 'Research emphasis']
+  }
+];
+
+const categories = ['All', 'Classic', 'Creative', 'Tech', 'Executive', 'Academic'];
 
 export default function TemplatesPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  
-  // Mock template data
-  const templates: Template[] = [
-    {
-      id: 'modern-1',
-      name: 'Modern Professional',
-      category: 'professional',
-      imageUrl: '/modern-1.jpg',
-      description: 'Clean and contemporary design with a sidebar for skills and contact information.',
-      isPremium: false
-    },
-    {
-      id: 'creative-1',
-      name: 'Creative Portfolio',
-      category: 'creative',
-      imageUrl: '/creative-1.jpg',
-      description: 'Bold layout with vibrant accents, perfect for design and creative roles.',
-      isPremium: true
-    },
-    {
-      id: 'simple-1',
-      name: 'Minimal Clean',
-      category: 'simple',
-      imageUrl: '/simple-1.jpg',
-      description: 'Streamlined and elegant design focusing on clarity and readability.',
-      isPremium: false
-    },
-    {
-      id: 'professional-2',
-      name: 'Executive Suite',
-      category: 'professional',
-      imageUrl: '/professional-2.jpg',
-      description: 'Sophisticated layout designed for senior leadership and executive positions.',
-      isPremium: true
-    },
-    {
-      id: 'academic-1',
-      name: 'Academic CV',
-      category: 'academic',
-      imageUrl: '/academic-1.jpg',
-      description: 'Structured format ideal for academic positions, with sections for publications and research.',
-      isPremium: false
-    },
-    {
-      id: 'simple-2',
-      name: 'Basic Classic',
-      category: 'simple',
-      imageUrl: '/simple-2.jpg',
-      description: 'Traditional chronological layout, suitable for all industries and experience levels.',
-      isPremium: false
-    },
-    {
-      id: 'creative-2',
-      name: 'Vibrant Showcase',
-      category: 'creative',
-      imageUrl: '/creative-2.jpg',
-      description: 'Eye-catching design with unique layout for showcasing portfolio and achievements.',
-      isPremium: true
-    },
-    {
-      id: 'professional-3',
-      name: 'Corporate Standard',
-      category: 'professional',
-      imageUrl: '/professional-3.jpg',
-      description: 'Clean and professional design with traditional structure, ideal for corporate roles.',
-      isPremium: false
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const router = useRouter();
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  const checkUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/auth/sign-in');
+        return;
+      }
+      setUser(session.user);
+    } catch (err: any) {
+      console.error('Error checking user:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
-  
-  // Filter templates based on category and search query
-  const filteredTemplates = templates.filter(template => {
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          template.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-  
-  // Categories for the filter
-  const categories = [
-    { id: 'all', name: 'All Templates' },
-    { id: 'professional', name: 'Professional' },
-    { id: 'creative', name: 'Creative' },
-    { id: 'simple', name: 'Simple' },
-    { id: 'academic', name: 'Academic' }
-  ];
+  };
+
+  const filteredTemplates = selectedCategory === 'All'
+    ? templates
+    : templates.filter(template => template.category === selectedCategory);
+
+  const getColorClasses = (color: string) => {
+    const colorMap = {
+      blue: 'border-blue-200 hover:border-blue-400',
+      purple: 'border-purple-200 hover:border-purple-400',
+      green: 'border-green-200 hover:border-green-400',
+      gray: 'border-gray-200 hover:border-gray-400',
+      pink: 'border-pink-200 hover:border-pink-400',
+      indigo: 'border-indigo-200 hover:border-indigo-400'
+    };
+    return colorMap[color as keyof typeof colorMap] || 'border-gray-200 hover:border-gray-400';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading templates...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="pb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Resume Templates</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse our collection of professional resume templates
-          </p>
-        </header>
-        
-        <div className="bg-white rounded-xl shadow-md overflow-hidden p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Category Filter */}
-            <div className="flex overflow-x-auto py-2 space-x-2">
-              {categories.map(category => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-                    selectedCategory === category.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard"
+                className="flex items-center text-gray-600 hover:text-yellow-500 transition-colors"
+              >
+                <span className="text-xl mr-2">←</span>
+                <span className="font-medium">Back to Dashboard</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <h1 className="text-xl font-bold text-gray-900">Resume Templates</h1>
             </div>
-            
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search templates..."
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-10"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+            <div className="text-2xl font-extrabold">
+              AI Job <span className="text-yellow-400">Platform</span>
             </div>
           </div>
         </div>
-        
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="mb-6">
+            <span className="text-6xl">🎨</span>
+          </div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Professional Resume Templates
+          </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Choose from our collection of professionally designed resume templates. 
+            Each template is optimized for ATS systems and tailored for different industries.
+          </p>
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-6 py-2 rounded-full font-medium transition-all ${
+                selectedCategory === category
+                  ? 'bg-gradient-to-r from-yellow-400 to-pink-400 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
         {/* Templates Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map(template => (
-            <div key={template.id} className="bg-white rounded-xl shadow-md overflow-hidden">
-              {/* Template Preview Image */}
-              <div className="aspect-w-4 aspect-h-5 bg-gray-200 relative">
-                {/* In a real app, this would display the actual template preview image */}
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
-                  {template.name} Preview
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {filteredTemplates.map((template) => (
+            <div
+              key={template.id}
+              className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 ${getColorClasses(template.color)} group`}
+            >
+              {/* Preview */}
+              <div className="aspect-w-3 aspect-h-4 bg-gray-50 rounded-t-2xl p-8 flex items-center justify-center">
+                <div className="text-6xl">{template.preview}</div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-bold text-gray-900">{template.name}</h3>
+                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                    {template.category}
+                  </span>
                 </div>
                 
-                {template.isPremium && (
-                  <div className="absolute top-2 right-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Premium
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Template Info */}
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900">{template.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">{template.description}</p>
+                <p className="text-gray-600 text-sm mb-4">{template.description}</p>
                 
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xs font-medium text-gray-500 capitalize">
-                    {template.category.replace('-', ' ')}
-                  </span>
-                  
-                  <Link 
-                    href={`/resume-builder?template=${template.id}`}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Use Template
-                  </Link>
+                <div className="space-y-2 mb-6">
+                  {template.features.map((feature, index) => (
+                    <div key={index} className="flex items-center text-sm text-gray-600">
+                      <span className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs mr-2">✓</span>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <button className="w-full bg-gradient-to-r from-yellow-400 to-pink-400 text-white py-3 px-4 rounded-lg font-bold hover:shadow-lg transition-all">
+                    Use This Template
+                  </button>
+                  <button className="w-full bg-white text-gray-700 py-2 px-4 rounded-lg font-medium border border-gray-200 hover:bg-gray-50 transition-all">
+                    Preview
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        
-        {filteredTemplates.length === 0 && (
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No templates found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search or category filters
+
+        {/* Coming Soon Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🚀</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">More Templates Coming Soon!</h3>
+            <p className="text-gray-600 mb-6">
+              We're constantly adding new templates based on industry trends and user feedback.
             </p>
           </div>
-        )}
-        
-        {/* Premium Banner */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-lg overflow-hidden">
-          <div className="px-6 py-12 sm:px-12 lg:px-16 flex flex-col md:flex-row items-center justify-between">
-            <div className="text-center md:text-left mb-8 md:mb-0">
-              <h2 className="text-2xl font-bold text-white">Upgrade to Premium</h2>
-              <p className="mt-2 text-blue-100 max-w-2xl">
-                Get access to all premium templates, unlimited resume downloads, and advanced AI features
-              </p>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="text-3xl mb-3">📱</div>
+              <h4 className="font-semibold text-gray-900 mb-2">Mobile-Optimized</h4>
+              <p className="text-gray-600 text-sm">Templates that look great on all devices</p>
             </div>
-            <div>
-              <a
-                href="#"
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-indigo-700 bg-white hover:bg-gray-50"
-              >
-                See Premium Plans
-              </a>
+            
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="text-3xl mb-3">🎯</div>
+              <h4 className="font-semibold text-gray-900 mb-2">Industry-Specific</h4>
+              <p className="text-gray-600 text-sm">Specialized templates for different careers</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="text-3xl mb-3">🌍</div>
+              <h4 className="font-semibold text-gray-900 mb-2">International Formats</h4>
+              <p className="text-gray-600 text-sm">Templates for global job markets</p>
             </div>
           </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="mt-12 text-center">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            Need Help Choosing?
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Let our AI analyze your profile and recommend the best template for your industry and experience level.
+          </p>
+          <Link
+            href="/resume-upload"
+            className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-4 rounded-lg font-bold hover:shadow-lg transition-all"
+          >
+            Get AI Template Recommendation
+          </Link>
         </div>
       </div>
     </div>

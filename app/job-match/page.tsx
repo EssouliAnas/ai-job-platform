@@ -1,271 +1,211 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import supabase from '@/lib/supabase/client';
 
 export default function JobMatchPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const [selectedResume, setSelectedResume] = useState('');
-  const [jobKeywords, setJobKeywords] = useState('');
-  const [location, setLocation] = useState('');
-  const [jobMatches, setJobMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
-  // Mock resume data
-  const resumes = [
-    { id: 'resume1', name: 'Software Developer Resume' },
-    { id: 'resume2', name: 'UI/UX Designer Resume' },
-    { id: 'resume3', name: 'Project Manager Resume' },
-  ];
+  useEffect(() => {
+    checkUser();
+  }, []);
 
-  // Mock job data
-  const mockJobs = [
-    {
-      id: 'job1',
-      title: 'Senior React Developer',
-      company: 'TechCorp Inc.',
-      location: 'New York, NY',
-      salary: '$120,000 - $150,000',
-      posted: '2 days ago',
-      description: 'We are looking for an experienced React developer to join our team...',
-      skills: ['React', 'TypeScript', 'Redux', 'Node.js'],
-      matchScore: 92,
-    },
-    {
-      id: 'job2',
-      title: 'Frontend Developer',
-      company: 'Digital Solutions',
-      location: 'Remote',
-      salary: '$90,000 - $110,000',
-      posted: '1 week ago',
-      description: 'Join our dynamic team creating responsive web applications...',
-      skills: ['JavaScript', 'React', 'CSS', 'HTML'],
-      matchScore: 87,
-    },
-    {
-      id: 'job3',
-      title: 'Full Stack Engineer',
-      company: 'Innovative Systems',
-      location: 'Boston, MA',
-      salary: '$130,000 - $160,000',
-      posted: '3 days ago',
-      description: 'Looking for a versatile engineer who can work across our entire stack...',
-      skills: ['JavaScript', 'Python', 'React', 'Django'],
-      matchScore: 78,
-    },
-    {
-      id: 'job4',
-      title: 'Frontend Developer',
-      company: 'CreativeTech',
-      location: 'San Francisco, CA',
-      salary: '$100,000 - $130,000',
-      posted: '5 days ago',
-      description: 'Join our team building beautiful and intuitive user interfaces...',
-      skills: ['React', 'JavaScript', 'Tailwind CSS', 'Next.js'],
-      matchScore: 73,
-    },
-    {
-      id: 'job5',
-      title: 'React Native Developer',
-      company: 'MobileFirst Apps',
-      location: 'Chicago, IL',
-      salary: '$110,000 - $140,000',
-      posted: '1 day ago',
-      description: 'Help us build cross-platform mobile applications with React Native...',
-      skills: ['React Native', 'JavaScript', 'iOS', 'Android'],
-      matchScore: 68,
-    },
-  ];
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedResume) {
-      alert('Please select a resume');
-      return;
+  const checkUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/auth/sign-in');
+        return;
+      }
+      setUser(session.user);
+    } catch (err: any) {
+      console.error('Error checking user:', err);
+    } finally {
+      setLoading(false);
     }
-    
-    setIsLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Filter and sort mock jobs based on inputs
-    let filteredJobs = [...mockJobs];
-    
-    if (jobKeywords) {
-      const keywords = jobKeywords.toLowerCase().split(' ');
-      filteredJobs = filteredJobs.filter(job => 
-        keywords.some(keyword => 
-          job.title.toLowerCase().includes(keyword) || 
-          job.skills.some(skill => skill.toLowerCase().includes(keyword))
-        )
-      );
-    }
-    
-    if (location) {
-      const locationLower = location.toLowerCase();
-      filteredJobs = filteredJobs.filter(job => 
-        job.location.toLowerCase().includes(locationLower)
-      );
-    }
-    
-    setJobMatches(filteredJobs);
-    setSearchPerformed(true);
-    setIsLoading(false);
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="pb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Job Match</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Find the perfect job opportunities matched to your skills and experience
-          </p>
-        </header>
-        
-        <div className="bg-white rounded-xl shadow-md overflow-hidden p-8 mb-8">
-          <form onSubmit={handleSearch}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label htmlFor="resume" className="block text-sm font-medium text-gray-700">
-                  Select Resume
-                </label>
-                <select
-                  id="resume"
-                  name="resume"
-                  value={selectedResume}
-                  onChange={(e) => setSelectedResume(e.target.value)}
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                  required
-                >
-                  <option value="">Choose a resume</option>
-                  {resumes.map(resume => (
-                    <option key={resume.id} value={resume.id}>{resume.name}</option>
-                  ))}
-                </select>
-                <Link 
-                  href="/resume-builder" 
-                  className="mt-2 inline-block text-sm text-blue-600 hover:text-blue-500"
-                >
-                  Create a new resume
-                </Link>
-              </div>
-              
-              <div>
-                <label htmlFor="keywords" className="block text-sm font-medium text-gray-700">
-                  Job Title or Keywords
-                </label>
-                <input
-                  type="text"
-                  name="keywords"
-                  id="keywords"
-                  value={jobKeywords}
-                  onChange={(e) => setJobKeywords(e.target.value)}
-                  placeholder="e.g. React, Developer, JavaScript"
-                  className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. New York, Remote"
-                  className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {isLoading ? 'Finding matches...' : 'Find Matching Jobs'}
-              </button>
-            </div>
-          </form>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading job matching...</p>
         </div>
-        
-        {searchPerformed && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Job Matches</h2>
-              <p className="text-sm text-gray-500">{jobMatches.length} matches found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-purple-50 to-pink-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard"
+                className="flex items-center text-gray-600 hover:text-yellow-500 transition-colors"
+              >
+                <span className="text-xl mr-2">←</span>
+                <span className="font-medium">Back to Dashboard</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <h1 className="text-xl font-bold text-gray-900">Job Matching</h1>
             </div>
-            
-            {jobMatches.length > 0 ? (
-              <div className="space-y-6">
-                {jobMatches.map(job => (
-                  <div key={job.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                    <div className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">{job.title}</h3>
-                          <p className="text-md text-gray-700">{job.company}</p>
-                          <p className="text-sm text-gray-500 mt-1">{job.location} • {job.posted}</p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 text-blue-800 text-xl font-bold">
-                            {job.matchScore}%
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Match</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-700">{job.description}</p>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700">Skills:</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {job.skills.map((skill: string) => (
-                            <span 
-                              key={skill}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="mt-6 flex justify-between items-center">
-                        <p className="text-sm font-medium text-gray-900">{job.salary}</p>
-                        <button
-                          type="button"
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Apply Now
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="text-2xl font-extrabold">
+              AI Job <span className="text-yellow-400">Platform</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="mb-6">
+            <span className="text-6xl">🎯</span>
+          </div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Find Your Perfect Job Match
+          </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Our AI analyzes your skills, experience, and preferences to find job opportunities 
+            that are perfectly aligned with your career goals.
+          </p>
+        </div>
+
+        {/* Coming Soon Card */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+            <div className="mb-8">
+              <div className="w-24 h-24 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">🚀</span>
               </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-md p-8 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No matching jobs found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Try adjusting your search criteria or uploading a different resume
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">Coming Soon!</h3>
+              <p className="text-lg text-gray-600 mb-8">
+                We're building an amazing job matching system that will revolutionize how you find your next career opportunity.
+              </p>
+            </div>
+
+            {/* Features Preview */}
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <div className="text-left">
+                <h4 className="text-xl font-semibold text-gray-900 mb-4">🤖 AI-Powered Matching</h4>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Skills-based job recommendations
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Experience level matching
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Location preferences
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Salary range optimization
+                  </li>
+                </ul>
+              </div>
+
+              <div className="text-left">
+                <h4 className="text-xl font-semibold text-gray-900 mb-4">📊 Smart Analytics</h4>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Match compatibility scores
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Skill gap analysis
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Application success predictions
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm mr-3">✓</span>
+                    Career growth recommendations
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="space-y-4">
+              <Link
+                href="/resume-upload"
+                className="block w-full bg-gradient-to-r from-yellow-400 to-pink-400 text-white py-4 px-8 rounded-lg font-bold text-lg hover:shadow-lg transition-all"
+              >
+                Upload Your Resume to Get Started
+              </Link>
+              <p className="text-gray-500 text-sm">
+                Upload your resume to enable personalized job matching when this feature launches
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Meanwhile Section */}
+        <div className="mt-16">
+          <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">
+            Meanwhile, explore these features
+          </h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Link
+              href="/resume-upload"
+              className="group bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-blue-100"
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">📄</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  Resume Analysis
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Get AI-powered feedback on your resume to improve your job prospects
                 </p>
               </div>
-            )}
+            </Link>
+
+            <Link
+              href="/resume-builder"
+              className="group bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-green-100"
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">📝</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">
+                  Resume Builder
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Create a professional resume with our easy-to-use builder
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/cover-letter"
+              className="group bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-purple-100"
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">✉️</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                  Cover Letters
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Generate personalized cover letters for any job application
+                </p>
+              </div>
+            </Link>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
